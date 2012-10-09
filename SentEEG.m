@@ -5,7 +5,7 @@
 
 
 %%%%%%%%%%%%Functions for running experiment%%%%%%%%%%%%%%%%
-function expt = SentEEG() 
+function expt = SentMEG() 
     %%%This is the main function that controls the entire process, from reading
     %%%in input parameters to actually running the experiment
 
