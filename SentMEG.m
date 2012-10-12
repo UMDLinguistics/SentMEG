@@ -321,12 +321,14 @@ function expt = ReadStimFile(stimFile,expt)
             continue
         end
         
-        %% Two cases, one for textslides, one for regular stim lists
+        %% Two cases, one for files containing textslides, one for regular stim lists
+        %Both of these need to be able to loop, because you can have more than one text
+        %slide in a file (e.g. an intro.txt file with several slides)
 
         if strcmp(C{1}{1},'<textslide>')
             %% If the first token in the current line is '<textslide>', add the current block of stimuli (if it is not empty) to expt,
-            %%reset the current block of stimuli, then read in a text slide until you hit '</textslide>'
-            %using ReadTextSlide, and add the textslide to the experiment.
+            %%reset the current block of stimuli, then read from the file using ReadTextSlide until you hit '</textslide>'
+            %%and add the textslide to the experiment.
             
             %fprintf('textslide identified\n');
             expt{1,length(expt)+1} = ReadTextSlide(textLine,fid);
