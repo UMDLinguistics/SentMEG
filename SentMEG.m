@@ -226,43 +226,17 @@ function par = ReadParameterFile(paramFileName, par)
 			continue
         end
         
-        fxnToEval = strcat('par.',textLine,';');
-        
+        fxnToEval = strcat('par.',textLine,';');      
 		if (~strcmp(fxnToEval,'par.;'))
-			fprintf(strcat('this is the function to evaluate: ',fxnToEval,'\n'));
-			eval(fxnToEval);
+			%fprintf(strcat('this is the function to evaluate: ',fxnToEval,'\n'));
+			eval(fxnToEval); % This looks fancy, but just a way to do assignment of par variables in the text file
 		end
 		textLine = fgets(fid);
 	end
 	
-	par.toString = ParToString(par);
-	%fprintf(char(par.toString));
 	fclose(fid);
 end
 
-function str = ParToString(par)
-%Returns a string value encoding all the parameters stored in the
-%variable par.
-	str = '';
-	par_fields = fieldnames(par);
-	nfields = length(par_fields);
-	if (nfields < 1)
-		fprintf('No parameters were entered! Check the parameter file.');
-		return
-	end
-	str = par_fields(1);
-	if (nfields > 1)
-		for (fieldindex = 2:nfields)
-			field = par_fields(fieldindex);
-			value = eval(strcat('par.',char(field),';'));
-			if(~strcmp(class(value),'string'))
-				value = num2str(value);
-			end
-			str = strcat(str,'\n',field,':',value);
-			%fprintf(char(strcat(str,'\n#####\n')));
-		end
-	end
-end
 
 
 %%%%%%%%%%%%Reading experimental materials%%%%%%%%%%%%%%
@@ -496,12 +470,37 @@ function WriteRecFile (recFileName,par,subjID, exptFileNameAndPath,paramFileName
 	fprintf(fid,fmt,'Date:',datestr(now));
 	fprintf(fid,fmt,'Subject ID:',subjID);
 	fprintf(fid,'%s\n','Parameters:');
+    par.toString = ParToString(par);
 	parstrings = regexp(par.toString,'\\n','split');
 	for i = 1:length(parstrings{1})
 		%fprintf(1,'%s\n',char(parstrings{1}{i}));
 		fprintf(fid,'%s\n',char(parstrings{1}{i}));
 	end
 	fclose(fid);
+end
+
+function str = ParToString(par)
+%Returns a string value encoding all the parameters stored in the
+%variable par, for writing out to the .rec file
+	str = '';
+	par_fields = fieldnames(par);
+	nfields = length(par_fields);
+	if (nfields < 1)
+		fprintf('No parameters were entered! Check the parameter file.');
+		return
+	end
+	str = par_fields(1);
+	if (nfields > 1)
+		for (fieldindex = 2:nfields)
+			field = par_fields(fieldindex);
+			value = eval(strcat('par.',char(field),';'));
+			if(~strcmp(class(value),'string'))
+				value = num2str(value);
+			end
+			str = strcat(str,'\n',field,':',value);
+			%fprintf(char(strcat(str,'\n#####\n')));
+		end
+	end
 end
 
 
