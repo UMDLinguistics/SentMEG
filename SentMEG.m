@@ -113,20 +113,20 @@ function par = RunExperiment(expt,par)
 	sca;  %%%End of experiment!
 end
 
-function par = RunBlock(currblock,par)
+function par = RunBlock(stimBlock,par)
 
-	numItems = length(currblock.stimulusMatrix);
+	numItems = length(stimBlock.stimulusMatrix);
     
     %%%For each trial in the block:
     
 	for i = 1:numItems
         
         %%%Initialize results, currentItem, TriggerList
-		currentItem = currblock.stimulusMatrix{i};  %This is the current item (trial) being presented
-		currentItemTriggerList = currblock.triggerMatrix{i}; %This is the current list of triggers for that item
+		currentItem = stimBlock.stimulusMatrix{i};  %This is the current item (trial) being presented
+		currentItemTriggerList = stimBlock.triggerMatrix{i}; %This is the current list of triggers for that item
 		numWords = length(currentItem);
-        currentQuestion = currblock.questionList{i};
-        currQuestionTrigger = currblock.questionTriggers{i};
+        currentQuestion = stimBlock.questionList{i};
+        currQuestionTrigger = stimBlock.questionTriggers{i};
         results = InitResults;  
         
         %%%Present item
@@ -307,8 +307,8 @@ function expt = ReadStimFile(stimFile,expt)
     %% For each line of the stim file, add content to expt structure
 
     itemNum = 1;  %The number of the current stimulus item.
-    currblock = InitBlock;  %Information in the expt structure is organized by objects of class 'exptblock'
-    currblock.name = stimFile;
+    stimBlock = InitBlock;  %Information in the expt structure is organized by objects of class 'exptblock'
+    stimBlock.name = stimFile;
 
     while (-1 ~= textLine)
         C = textscan(textLine, '%q %d'); %use textscan to separate line into 'text' 'number' pairs.
@@ -338,26 +338,23 @@ function expt = ReadStimFile(stimFile,expt)
         else
             %% Otherwise, treat like a structured list of text stimuli
             
-            %fprintf('not a text slide\n');
-            %fprintf('reading stimulus\n');
-            
               for jj = 1:numStimWords        
                   if strcmp(C{1}{jj},'?') 
-                         currblock.questionTriggers{itemNum} = C{2}(jj);
-                         currblock.questionList{itemNum} = C{1}{jj+1};
+                         stimBlock.questionTriggers{itemNum} = C{2}(jj);
+                         stimBlock.questionList{itemNum} = C{1}{jj+1};
                          if(jj==1) %%if no words prior to the question, create a blank item and trigger
-                             currblock.stimulusMatrix{itemNum}{jj} = [];
-                             currblock.triggerMatrix{itemNum}{jj} = [];
+                             stimBlock.stimulusMatrix{itemNum}{jj} = [];
+                             stimBlock.triggerMatrix{itemNum}{jj} = [];
                          end
                          %fprintf('added a question and question trigger\n');
                       break
                   else
-                      currblock.questionList{itemNum} = [];  %%if no question, create an empty cell as a place holder
-                      currblock.questionTriggers{itemNum} = []; %ditto for the question triggers
+                      stimBlock.questionList{itemNum} = [];  %%if no question, create an empty cell as a place holder
+                      stimBlock.questionTriggers{itemNum} = []; %ditto for the question triggers
                   end
 
-                  currblock.stimulusMatrix{itemNum}{jj} = C{1}{jj};
-                  currblock.triggerMatrix{itemNum}{jj} = C{2}(jj);
+                  stimBlock.stimulusMatrix{itemNum}{jj} = C{1}{jj};
+                  stimBlock.triggerMatrix{itemNum}{jj} = C{2}(jj);
                   %fprintf('added a stimulus and trigger\n');
               end
               
@@ -371,8 +368,8 @@ function expt = ReadStimFile(stimFile,expt)
     
     %Add the current block of stimuli to the experiment, if it is not
     %empty.
-    if (~BlockEmpty(currblock))
-        expt{1,length(expt)+1} = currblock;
+    if (~BlockEmpty(stimBlock))
+        expt{1,length(expt)+1} = stimBlock;
         %fprintf('block added\n');
     end
     
@@ -412,12 +409,12 @@ function textslide = ReadTextSlide(textLine,fid)
     end
 end
         
-function currblock = InitBlock
-    currblock = expblock;  %%%Define currblock as a member of the class expblock, defined in expblock.m
-    currblock.stimulusMatrix = [];
-    currblock.triggerMatrix = [];
-    currblock.questionList = {};
-    currblock.questionTriggers = {};
+function stimBlock = InitBlock
+    stimBlock = expblock;  %%%Define stimBlock as a member of the class expblock, defined in expblock.m
+    stimBlock.stimulusMatrix = [];
+    stimBlock.triggerMatrix = [];
+    stimBlock.questionList = {};
+    stimBlock.questionTriggers = {};
 end
 
  
