@@ -238,13 +238,10 @@ function par = ReadParameterFile(paramFileName, par)
 end
 
 
-
 %%%%%%%%%%%%Reading experimental materials%%%%%%%%%%%%%%
 
 function expt = ReadExptFile(exptFileName,exptPath)
     exptFileNameAndPath = strcat(exptPath,exptFileName);
-    %fprintf('Reading experiment file at:\n');
-    %fprintf('%s\n',exptFileNameAndPath);
     expt = {};
     exptFiles = {};
     fid = fopen(exptFileNameAndPath, 'r');
@@ -252,17 +249,19 @@ function expt = ReadExptFile(exptFileName,exptPath)
         error('Cannot open experiment file.')
     end
     textLine = fgetl(fid);  %fgetl reads a single line from a file
+    
+    %% Read in list of filenames of slides and stimlists to be presented
     ii = 1;
-
-    %right now can be no blank lines -- that is a problem!
     while (-1 ~= textLine)
         C = textscan(textLine, '%q %d'); %use textscan to separate it
         exptFiles{ii} = strcat(textLine);
         ii = ii + 1;
         textLine = fgetl(fid);      
-    end
-    exptFiles
+    end 
     fclose(fid);
+    
+    %% For each slide or stimlist file, check that it exists, prompt for
+    %% user entry if it does not, and then 
     nFiles = length(exptFiles);
     for ii = 1:nFiles
         currFileNameAndPath = strcat(exptPath,exptFiles{ii})
@@ -280,7 +279,7 @@ function expt = ReadExptFile(exptFileName,exptPath)
 
 end
 
-function expt = ReadExptSubFile(exptFile,expt,par)
+function expt = ReadExptSubFile(exptFile,expt)
 fprintf('Reading file at:\n');
     fprintf('%s\n',exptFile);
     currblock = InitBlock;
