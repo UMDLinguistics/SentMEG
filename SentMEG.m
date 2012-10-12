@@ -492,46 +492,45 @@ end
 %%%%%%%%%%%%%Gathering responses%%%%%%%%%%%%%%%%
 
 function [reactionTime, button, buttonTrigger, par] = GetButtonPress(buttons,buttonTriggers,par,timed)
-%Waits for a button press by the user of the buttons whose numbers (found using KbName) are specified in the array
-%buttons. send the corresponding trigger for that button, as specified in
-%the array buttonTriggers. If the boolean value timed == 1, after
-%par.qDuration seconds the function ends.  If timed == 0, waits forever
-%until the user types one of the specified buttons.
-        beg = GetSecs();
-        %Is this right???
-        absTime = beg + par.qDuration;                    
-        flag = 0;
-        button = -1;
-        buttonTrigger = -1;
-        while (true);
-            [keyDetect,reactionTime,keyCode] = KbCheck(-1);
-            %is there a faster way to compare each button??  Can we do this
-            %simultaneously for all buttons??
-            for (i = 1:length(buttons));
-                if (keyCode(buttons(i)));
-                    tic;
-%                     %DaqDOut(par.di,1,buttonTriggers(i));
-%                     par.timing.responseTriggers(par.timing.responseIndex) = toc;
-%                     par.timing.responseIndex = par.timing.responseIndex + 1;
-                    %DaqDOut(par.di,1,0);
-                    button = buttons(i);
-                    buttonTrigger = buttonTriggers(i);
-                    flag = 1;
-                    break;
-                end
-            end
-            if (flag == 1);
-                break;
-            end
-            
-            if (timed && GetSecs() > absTime);
+%% Waits for a button press by the user of the buttons whose numbers (found using KbName) 
+%are specified in the arry of buttons. Send the corresponding trigger for that button, as specified in
+%the array buttonTriggers. If the boolean value timed == 1, after par.qDuration seconds the function ends.  
+%If timed == 0, waits forever until the user types one of the specified buttons.
+
+    begWaitTime = GetSecs();
+    timeCutoff = begWaitTime + par.qDuration;                    
+    flag = 0;
+    button = -1;
+    buttonTrigger = -1;
+    
+    %% Loop that waits for a response or breaks if timeCutoff is exceeded
+    while (true);
+        [keyDetect,reactionTime,keyCode] = KbCheck(-1);
+        %is there a faster way to compare each button??  Can we do this simultaneously for all buttons??
+        for (i = 1:length(buttons));
+            if (keyCode(buttons(i)));
+                %DaqDOut(par.di,1,buttonTriggers(i));
+                %DaqDOut(par.di,1,0);
+                button = buttons(i);
+                buttonTrigger = buttonTriggers(i);
+                flag = 1;
                 break;
             end
         end
+        
+        %%This part just allows you to break if a button was pressed
+        if (flag == 1);
+            break;
+        end
+
+        if (timed && GetSecs() > absTime);
+            break;
+        end
+    end
 end
 
 function ClearButtonPress()
-%Makes sure no buttons are being pressed/held down before get the new button press.
+%% Makes sure no buttons are being pressed/held down before get the new button press.
 %This is important for when, for example, two textslides are one after the
 %other, or for any case when one button press triggers another stage of the
 %experiment that can be moved on from by pressing the same button that ended the last
