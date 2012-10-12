@@ -304,7 +304,7 @@ function expt = ReadStimFile(stimFile,expt)
     
     %% For each line of the stim file, add content to expt structure
 
-    itemnum = 1;  %The number of the current stimulus item.
+    itemNum = 1;  %The number of the current stimulus item.
     currblock = InitBlock;  %Information in the expt structure is organized by objects of class 'exptblock'
     currblock.name = stimFile;
 
@@ -322,21 +322,21 @@ function expt = ReadStimFile(stimFile,expt)
         %% Two cases, one for textslides, one for regular stim lists
 
         if strcmp(C{1}{1},'<textslide>')
-            %% If the first token in the current line is '<textslide>', 
-            %%add the current block of stimuli (if it is not empty) to expt,
+            %% If the first token in the current line is '<textslide>', add the current block of stimuli (if it is not empty) to expt,
             %%reset the current block of stimuli, then read in a text slide until you hit '</textslide>'
             %using ReadTextSlide, and add the textslide to the experiment.
+            
             %fprintf('textslide identified\n');
             if (~BlockEmpty(currblock))
                 expt{1,length(expt)+1} = currblock;
                 currblock = InitBlock;
                 currblock.name = stimFile;
-                itemnum = 1;
+                itemNum = 1;
                 %fprintf('block added\n');
             end
             expt{1,length(expt)+1} = ReadTextSlide(textLine,fid);
             %fprintf('textslide should be added\n');
-            itemnum=1;
+            itemNum=1;
             textLine = fgets(fid);   
 
        
@@ -359,7 +359,7 @@ function expt = ReadStimFile(stimFile,expt)
                if (length(namechunk>0))
                    currblock.name = regexprep(namechunk,'.*"(\S*)".*','$1');
                end
-               itemnum=1;
+               itemNum=1;
                textLine = fgets(fid);  
                continue;
             end
@@ -371,7 +371,7 @@ function expt = ReadStimFile(stimFile,expt)
                    currblock = InitBlock;
                    currblock.name = stimFile;
                end
-               itemnum=1;
+               itemNum=1;
                textLine = fgets(fid);
                continue;
             end
@@ -379,27 +379,27 @@ function expt = ReadStimFile(stimFile,expt)
             %fprintf('reading stimulus\n');
               for jj = 1:numStimWords        
                   if strcmp(C{1}{jj},'?') 
-                         currblock.questionTriggers{itemnum} = C{2}(jj);
-                         currblock.questionList{itemnum} = C{1}{jj+1};
+                         currblock.questionTriggers{itemNum} = C{2}(jj);
+                         currblock.questionList{itemNum} = C{1}{jj+1};
                          if(jj==1) %%if no words prior to the question, create a blank item and trigger
-                             currblock.stimulusMatrix{itemnum}{jj} = [];
-                             currblock.triggerMatrix{itemnum}{jj} = [];
+                             currblock.stimulusMatrix{itemNum}{jj} = [];
+                             currblock.triggerMatrix{itemNum}{jj} = [];
                          end
                          %fprintf('added a question and question trigger\n');
                       break
                   else
-                      currblock.questionList{itemnum} = [];  %%if no question, create an empty cell as a place holder
-                      currblock.questionTriggers{itemnum} = []; %ditto for the question triggers
+                      currblock.questionList{itemNum} = [];  %%if no question, create an empty cell as a place holder
+                      currblock.questionTriggers{itemNum} = []; %ditto for the question triggers
                   end
 
-                  currblock.stimulusMatrix{itemnum}{jj} = C{1}{jj};
-                  currblock.triggerMatrix{itemnum}{jj} = C{2}(jj);
+                  currblock.stimulusMatrix{itemNum}{jj} = C{1}{jj};
+                  currblock.triggerMatrix{itemNum}{jj} = C{2}(jj);
                   %fprintf('added a stimulus and trigger\n');
               end
           
           end
           
-          itemnum = itemnum + 1;
+          itemNum = itemNum + 1;
           %fprintf('item number increased by one\n');
           textLine = fgets(fid); 
     end
