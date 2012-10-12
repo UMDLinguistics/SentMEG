@@ -260,8 +260,8 @@ function expt = ReadExptFile(exptFileName,exptPath)
     end 
     fclose(fid);
     
-    %% For each slide or stimlist file, check that it exists, prompt for
-    %% user entry if it does not, and then add on the contents to the expt
+    %% For each slide or stimlist filename listed, check that it exists, prompt for
+    %% user entry if it does not, and then add the contents of the file to the expt
     %% structure by using ReadStimFile
     nFiles = length(exptFiles);
     for ii = 1:nFiles
@@ -281,19 +281,23 @@ function expt = ReadExptFile(exptFileName,exptPath)
 end
 
 function expt = ReadStimFile(exptFile,expt)
-fprintf('Reading file at:\n');
+
+    %% Open the file containing the stimuli
     fprintf('%s\n',exptFile);
-    currblock = InitBlock;
-    currblock.name = exptFile;
     fid = fopen(exptFile, 'r');
     textLine = fgets(fid);  %fgets reads a single line from a file, keeping new line characters.
+    
+    %% For each line of the stim file, add content to expt structure
     itemnum = 1;  %The number of the current stimulus item.
+    currblock = InitBlock;
+    currblock.name = exptFile;
+
     while (-1 ~= textLine)
         C = textscan(textLine, '%q %d'); %use textscan to separate it into 'text' 'number' pairs.
-        numStim = length(C{1});
+        numStimWords = length(C{1});
         
         %If there is a blank line, skip it and get the next line.
-        if (numStim == 0)
+        if (numStimWords == 0)
             %fprintf('there is a blank line\n');
             textLine = fgets(fid); 
             continue
@@ -353,7 +357,7 @@ fprintf('Reading file at:\n');
            continue;
         end
         %fprintf('reading stimulus\n');
-          for jj = 1:numStim        
+          for jj = 1:numStimWords        
               if strcmp(C{1}{jj},'?') 
                      currblock.questionTriggers{itemnum} = C{2}(jj);
                      currblock.questionList{itemnum} = C{1}{jj+1};
