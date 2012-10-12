@@ -12,43 +12,56 @@ function expt = SentMEG()
     %%%This is the main function that controls the entire process, from reading
     %%%in input parameters to actually running the experiment
 
-    %%% Initialize keyboard
+    %% Initialize keyboard
     KbCheck;
 
-    %%% Select experiment and parameter files and enter subject ID.
+    %% Select experiment and parameter files and enter subject ID.
     [exptFileName, exptPath] = uigetfile('*.expt', 'Select experiment file');
     [paramFileName, paramPath] = uigetfile('*.par', 'Select parameter file',exptPath);
     subjID = input('Enter subject ID: ', 's');
 
-    %%% Initialize file names
+    %% Initialize file names
     exptFilePrefix = strrep(exptFileName,'.expt','');
     par.logFileName = strcat(exptPath,subjID,'_',exptFilePrefix,'.log'); %%logs events in same directory as experiment file
     recFileName = strcat(exptPath,subjID,'_',exptFilePrefix,'.rec'); %%logs parameters in same directory as experiment file
 
-    %%% Create log files
-    fid = fopen(par.logFileName,'w');
-    if fid == -1
-        error('Cannot write to log file.')
+    %% Create log and rec files, first test that they don't already exist
+    fExist = fopen(par.logFileName, 'r');
+    
+    if fExist == -1
+        fid = fopen(par.logFileName,'w');
+        if fid == -1
+            error('Cannot write to log file.')
+        end
+        fclose(fid);
+    else
+        error('log file with this name already exists')
     end
-    fclose(fid);
-    fid = fopen(recFileName,'w');
-    if fid == -1
-        error('Cannot write to rec file.')
-    end
-    fclose(fid);
+    
+    fExist = fopen(recFileName, 'r');
 
-    %%% ReadParameterFile stores the parameters in the struct 'par'.
+    if fExist == -1
+        fid = fopen(recFileName,'w');
+        if fid == -1
+            error('Cannot write to rec file.')
+        end
+        fclose(fid);
+    else
+        error('rec file with this name already exists')
+    end
+
+    %% ReadParameterFile stores the parameters in the struct 'par'.
     paramFileNameAndPath = strcat(paramPath,paramFileName);
     par = ReadParameterFile(paramFileNameAndPath,par);
     fprintf('Parameter file read');
 
-    %%% ReadExptFile returns a struct, 'expt', which stores all the data necessary
+    %% ReadExptFile returns a struct, 'expt', which stores all the data necessary
     %for running the experiment, besides the parameters.
     exptFileNameAndPath = strcat(exptPath,exptFileName);
     expt = ReadExptFile(exptFileName,exptPath);
     fprintf('Expt file read');
 
-    %%% WriteRecFile writes out the parameters, current time and subjID to record
+    %% WriteRecFile writes out the parameters, current time and subjID to record
     %what parameters were used each specific time each experiment was run.
     WriteRecFile(recFileName,par,subjID, exptFileNameAndPath,paramFileNameAndPath);
     fprintf('Rec file written')
@@ -146,7 +159,7 @@ end
 
 function results = RunItem(currentItem,currentItemTriggerList,numWords,results,par)
 
-        %%%Start by presenting fixation cross and subsequent blank screen
+        %% Start by presenting fixation cross and subsequent blank screen
 		Screen('TextSize',par.wPtr,par.textSize);
 		DrawFormattedText(par.wPtr,'+','center','center',WhiteIndex(par.wPtr));
 		Screen('DrawingFinished',par.wPtr);
@@ -157,7 +170,7 @@ function results = RunItem(currentItem,currentItemTriggerList,numWords,results,p
 		Screen('Flip',par.wPtr);
 		WaitSecs(par.IFI);
         
-        %%%Present the item itself, word by word
+        %% Present the item itself, word by word
         %%%This loop should have as little as possible inside it to speed timing performance
 		for w = 1: numWords 
 			currentWord = currentItem{w};
@@ -260,8 +273,8 @@ function expt = ReadExptFile(exptFileName,exptPath)
     end 
     fclose(fid);
     
-    %% For each slide or stimlist file, check that it exists, prompt for
-    %% user entry if it does not, and then add on the contents to the expt
+    %% For each slide or stimlist filename listed, check that it exists, prompt for
+    %% user entry if it does not, and then add the contents of the file to the expt
     %% structure by using ReadStimFile
     nFiles = length(exptFiles);
     for ii = 1:nFiles
@@ -281,26 +294,30 @@ function expt = ReadExptFile(exptFileName,exptPath)
 end
 
 function expt = ReadStimFile(exptFile,expt)
-fprintf('Reading file at:\n');
+
+    %% Open the file containing the stimuli
     fprintf('%s\n',exptFile);
-    currblock = InitBlock;
-    currblock.name = exptFile;
     fid = fopen(exptFile, 'r');
     textLine = fgets(fid);  %fgets reads a single line from a file, keeping new line characters.
+    
+    %% For each line of the stim file, add content to expt structure
     itemnum = 1;  %The number of the current stimulus item.
+    currblock = InitBlock;
+    currblock.name = exptFile;
+
     while (-1 ~= textLine)
         C = textscan(textLine, '%q %d'); %use textscan to separate it into 'text' 'number' pairs.
-        numStim = length(C{1});
+        numStimWords = length(C{1});
         
         %If there is a blank line, skip it and get the next line.
-        if (numStim == 0)
+        if (numStimWords == 0)
             %fprintf('there is a blank line\n');
             textLine = fgets(fid); 
             continue
         end
         
         %If the first token in the current line is '<textslide>', 
-        %add the current block of stimuli (if it is not empty) to the experiment,
+        %add the current block of stimuli (if it is not empty) to expt,
         %reset the current block of stimuli, then read in a text slide until you hit '</textslide>'
         %using ReadTextSlide, and add the textslide to the experiment.
         if strcmp(C{1}{1},'<textslide>')
@@ -353,7 +370,7 @@ fprintf('Reading file at:\n');
            continue;
         end
         %fprintf('reading stimulus\n');
-          for jj = 1:numStim        
+          for jj = 1:numStimWords        
               if strcmp(C{1}{jj},'?') 
                      currblock.questionTriggers{itemnum} = C{2}(jj);
                      currblock.questionList{itemnum} = C{1}{jj+1};
