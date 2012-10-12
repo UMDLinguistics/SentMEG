@@ -381,10 +381,9 @@ function blockempty = BlockEmpty(block)
 end
 
 function textslide = ReadTextSlide(textLine,fid)
+%% Fills up textslide variable with text to be presented on single screen
     textslide = [];
-    %right now can be no blank lines -- that is a problem!
     while (-1 ~= textLine)
-        %fprintf('%s\n',textLine);
          C = textscan(textLine,'%q');
          if (length(C{1}) == 0)
              textslide = strcat(textslide,'\n');
