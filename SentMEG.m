@@ -1,6 +1,7 @@
-%%Basic script for presenting EEG sentence or priming study
+%%Basic script for presenting MEG sentence or priming study
 %%First version 6/3/11 Ellen Lau
 %%Modified by Cybelle Smith  Fall 2011 (10/10/11)
+%%Modified by Ellen Lau & Allison Fogel, Fall 2012
 %%Partially based on code from Scott Burns, MGH
 
 %%If you're trying to understand the script for the first time, try collapsing
