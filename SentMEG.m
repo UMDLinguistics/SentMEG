@@ -258,7 +258,7 @@ end
 function expt = ReadExptFile(exptFileName,exptPath)
     exptFileNameAndPath = strcat(exptPath,exptFileName);
     expt = {};
-    exptFiles = {};
+    stimFiles = {};
     fid = fopen(exptFileNameAndPath, 'r');
     if fid == -1
         error('Cannot open experiment file.')
@@ -269,7 +269,7 @@ function expt = ReadExptFile(exptFileName,exptPath)
     ii = 1;
     while (-1 ~= textLine)
         C = textscan(textLine, '%q %d'); %use textscan to separate it
-        exptFiles{ii} = strcat(textLine);
+        stimFiles{ii} = strcat(textLine);
         ii = ii + 1;
         textLine = fgetl(fid);      
     end 
@@ -278,34 +278,34 @@ function expt = ReadExptFile(exptFileName,exptPath)
     %% For each slide or stimlist filename listed, check that it exists, prompt for
     %% user entry if it does not, and then add the contents of the file to the expt
     %% structure by using ReadStimFile
-    nFiles = length(exptFiles);
+    nFiles = length(stimFiles);
     for ii = 1:nFiles
-        currFileNameAndPath = strcat(exptPath,exptFiles{ii})
-        fid = fopen(currFileNameAndPath, 'r');
+        stimFileNameAndPath = strcat(exptPath,stimFiles{ii})
+        fid = fopen(stimFileNameAndPath, 'r');
         while fid == -1
-            prompt = horzcat('Set filename for ',exptFiles{ii},': ');
-            exptFiles{ii} = input(prompt, 's');
-            currFileNameAndPath = strcat(exptPath,exptFiles{ii});
-            fid = fopen(currFileNameAndPath, 'r');
+            prompt = horzcat('Set filename for ',stimFiles{ii},': ');
+            stimFiles{ii} = input(prompt, 's');
+            stimFileNameAndPath = strcat(exptPath,stimFiles{ii});
+            fid = fopen(stimFileNameAndPath, 'r');
         end
         a = ii
-        expt = ReadStimFile(currFileNameAndPath,expt);
+        expt = ReadStimFile(stimFileNameAndPath,expt);
         fclose(fid);
     end
 
 end
 
-function expt = ReadStimFile(exptFile,expt)
+function expt = ReadStimFile(stimFile,expt)
 
     %% Open a file containing stimuli
-    fprintf('%s\n',exptFile);
-    fid = fopen(exptFile, 'r');
+    fprintf('%s\n',stimFile);
+    fid = fopen(stimFile, 'r');
     textLine = fgets(fid);  %fgets reads a single line from a file, keeping new line characters.
     
     %% For each line of the stim file, add content to expt structure
     itemnum = 1;  %The number of the current stimulus item.
     currblock = InitBlock;  %Information in the expt structure is organized by objects of class 'exptblock'
-    currblock.name = exptFile;
+    currblock.name = stimFile;
 
     while (-1 ~= textLine)
         C = textscan(textLine, '%q %d'); %use textscan to separate line into 'text' 'number' pairs.
@@ -328,7 +328,7 @@ function expt = ReadStimFile(exptFile,expt)
             if (~BlockEmpty(currblock))
                 expt{1,length(expt)+1} = currblock;
                 currblock = InitBlock;
-                currblock.name = exptFile;
+                currblock.name = stimFile;
                 itemnum = 1;
                 %fprintf('block added\n');
             end
@@ -352,7 +352,7 @@ function expt = ReadStimFile(exptFile,expt)
            if (~BlockEmpty(currblock))
                     expt{1,length(expt)+1} = currblock;
                     currblock = InitBlock;
-                    currblock.name = exptFile;
+                    currblock.name = stimFile;
            end
            namechunk = regexprep(textLine,blockregex,'$1');
            if (length(namechunk>0))
@@ -362,17 +362,19 @@ function expt = ReadStimFile(exptFile,expt)
            textLine = fgets(fid);  
            continue;
         end
+        
         if (length(regexpi(textLine,'\s*<\s*/\s*block\s*>\s*'))>0)
             %fprintf('ended a block\n');
            if (~BlockEmpty(currblock))
                expt{1,length(expt)+1} = currblock;
                currblock = InitBlock;
-               currblock.name = exptFile;
+               currblock.name = stimFile;
            end
            itemnum=1;
            textLine = fgets(fid);
            continue;
         end
+        
         %fprintf('reading stimulus\n');
           for jj = 1:numStimWords        
               if strcmp(C{1}{jj},'?') 
