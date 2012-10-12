@@ -159,7 +159,7 @@ end
 
 function results = RunItem(currentItem,currentItemTriggerList,numWords,results,par)
 
-        %%%Start by presenting fixation cross and subsequent blank screen
+        %% Start by presenting fixation cross and subsequent blank screen
 		Screen('TextSize',par.wPtr,par.textSize);
 		DrawFormattedText(par.wPtr,'+','center','center',WhiteIndex(par.wPtr));
 		Screen('DrawingFinished',par.wPtr);
@@ -170,7 +170,7 @@ function results = RunItem(currentItem,currentItemTriggerList,numWords,results,p
 		Screen('Flip',par.wPtr);
 		WaitSecs(par.IFI);
         
-        %%%Present the item itself, word by word
+        %% Present the item itself, word by word
         %%%This loop should have as little as possible inside it to speed timing performance
 		for w = 1: numWords 
 			currentWord = currentItem{w};
@@ -317,7 +317,7 @@ function expt = ReadStimFile(exptFile,expt)
         end
         
         %If the first token in the current line is '<textslide>', 
-        %add the current block of stimuli (if it is not empty) to the experiment,
+        %add the current block of stimuli (if it is not empty) to expt,
         %reset the current block of stimuli, then read in a text slide until you hit '</textslide>'
         %using ReadTextSlide, and add the textslide to the experiment.
         if strcmp(C{1}{1},'<textslide>')
