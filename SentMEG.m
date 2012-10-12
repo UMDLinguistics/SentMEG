@@ -361,13 +361,11 @@ function expt = ReadStimFile(stimFile,expt)
           end
           
           itemNum = itemNum + 1;
-          %fprintf('item number increased by one\n');
           textLine = fgets(fid); 
           
     end
     
-    %Add the current block of stimuli to the experiment, if it is not
-    %empty.
+    %% Now the loop is finished, so add this block of stimuli to the experiment, if it is not empty.
     if (~BlockEmpty(stimBlock))
         expt{1,length(expt)+1} = stimBlock;
         %fprintf('block added\n');
