@@ -12,43 +12,56 @@ function expt = SentMEG()
     %%%This is the main function that controls the entire process, from reading
     %%%in input parameters to actually running the experiment
 
-    %%% Initialize keyboard
+    %% Initialize keyboard
     KbCheck;
 
-    %%% Select experiment and parameter files and enter subject ID.
+    %% Select experiment and parameter files and enter subject ID.
     [exptFileName, exptPath] = uigetfile('*.expt', 'Select experiment file');
     [paramFileName, paramPath] = uigetfile('*.par', 'Select parameter file',exptPath);
     subjID = input('Enter subject ID: ', 's');
 
-    %%% Initialize file names
+    %% Initialize file names
     exptFilePrefix = strrep(exptFileName,'.expt','');
     par.logFileName = strcat(exptPath,subjID,'_',exptFilePrefix,'.log'); %%logs events in same directory as experiment file
     recFileName = strcat(exptPath,subjID,'_',exptFilePrefix,'.rec'); %%logs parameters in same directory as experiment file
 
-    %%% Create log files
-    fid = fopen(par.logFileName,'w');
-    if fid == -1
-        error('Cannot write to log file.')
+    %% Create log and rec files, first test that they don't already exist
+    fExist = fopen(par.logFileName, 'r');
+    
+    if fExist == -1
+        fid = fopen(par.logFileName,'w');
+        if fid == -1
+            error('Cannot write to log file.')
+        end
+        fclose(fid);
+    else
+        error('log file with this name already exists')
     end
-    fclose(fid);
-    fid = fopen(recFileName,'w');
-    if fid == -1
-        error('Cannot write to rec file.')
-    end
-    fclose(fid);
+    
+    fExist = fopen(recFileName, 'r');
 
-    %%% ReadParameterFile stores the parameters in the struct 'par'.
+    if fExist == -1
+        fid = fopen(recFileName,'w');
+        if fid == -1
+            error('Cannot write to rec file.')
+        end
+        fclose(fid);
+    else
+        error('rec file with this name already exists')
+    end
+
+    %% ReadParameterFile stores the parameters in the struct 'par'.
     paramFileNameAndPath = strcat(paramPath,paramFileName);
     par = ReadParameterFile(paramFileNameAndPath,par);
     fprintf('Parameter file read');
 
-    %%% ReadExptFile returns a struct, 'expt', which stores all the data necessary
+    %% ReadExptFile returns a struct, 'expt', which stores all the data necessary
     %for running the experiment, besides the parameters.
     exptFileNameAndPath = strcat(exptPath,exptFileName);
     expt = ReadExptFile(exptFileName,exptPath);
     fprintf('Expt file read');
 
-    %%% WriteRecFile writes out the parameters, current time and subjID to record
+    %% WriteRecFile writes out the parameters, current time and subjID to record
     %what parameters were used each specific time each experiment was run.
     WriteRecFile(recFileName,par,subjID, exptFileNameAndPath,paramFileNameAndPath);
     fprintf('Rec file written')
