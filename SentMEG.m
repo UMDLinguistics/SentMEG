@@ -280,7 +280,7 @@ function expt = ReadExptFile(exptFileName,exptPath)
     %% structure by using ReadStimFile
     nFiles = length(stimFiles);
     for ii = 1:nFiles
-        stimFileNameAndPath = strcat(exptPath,stimFiles{ii})
+        stimFileNameAndPath = strcat(exptPath,stimFiles{ii});
         fid = fopen(stimFileNameAndPath, 'r');
         while fid == -1
             prompt = horzcat('Set filename for ',stimFiles{ii},': ');
@@ -288,8 +288,10 @@ function expt = ReadExptFile(exptFileName,exptPath)
             stimFileNameAndPath = strcat(exptPath,stimFiles{ii});
             fid = fopen(stimFileNameAndPath, 'r');
         end
-        a = ii
         expt = ReadStimFile(stimFileNameAndPath,expt);
+        %ii
+        %size(expt)
+        %expt{size(expt)}
         fclose(fid);
     end
 
@@ -327,24 +329,16 @@ function expt = ReadStimFile(stimFile,expt)
             %using ReadTextSlide, and add the textslide to the experiment.
             
             %fprintf('textslide identified\n');
-            if (~BlockEmpty(currblock))
-                expt{1,length(expt)+1} = currblock;
-                currblock = InitBlock;
-                currblock.name = stimFile;
-                itemNum = 1;
-                %fprintf('block added\n');
-            end
             expt{1,length(expt)+1} = ReadTextSlide(textLine,fid);
-            %fprintf('textslide should be added\n');
             itemNum=1;
             textLine = fgets(fid);   
-
        
         else
             %% Otherwise, treat like a structured list of text stimuli
             
             %fprintf('not a text slide\n');
             %fprintf('reading stimulus\n');
+            
               for jj = 1:numStimWords        
                   if strcmp(C{1}{jj},'?') 
                          currblock.questionTriggers{itemNum} = C{2}(jj);
@@ -364,12 +358,13 @@ function expt = ReadStimFile(stimFile,expt)
                   currblock.triggerMatrix{itemNum}{jj} = C{2}(jj);
                   %fprintf('added a stimulus and trigger\n');
               end
-          
+              
           end
           
           itemNum = itemNum + 1;
           %fprintf('item number increased by one\n');
           textLine = fgets(fid); 
+          
     end
     
     %Add the current block of stimuli to the experiment, if it is not
@@ -378,7 +373,9 @@ function expt = ReadStimFile(stimFile,expt)
         expt{1,length(expt)+1} = currblock;
         %fprintf('block added\n');
     end
+    
     fclose(fid);
+    
 end
 
 function blockempty = BlockEmpty(block)
