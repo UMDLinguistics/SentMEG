@@ -196,7 +196,7 @@ function results = RunItem(currentItem,currentItemTriggerList,numWords,results,p
 		end
 end
 
-function results = RunQuestion(currentQuestion, currQuestionTrigger, results, par);
+function results = RunQuestion(currentQuestion, currQuestionTrigger, results, par)
         %%%Present question
         WaitSecs(par.IQI);
         Screen('TextSize',par.wPtr,par.questionTextSize);%
@@ -216,7 +216,7 @@ function results = RunQuestion(currentQuestion, currQuestionTrigger, results, pa
            button = 'no_response';
         end
 
-        results = UpdateResults(results,reactionTime, button, [buttonTrigger]);
+        results = UpdateResults(results,reactionTime, button, buttonTrigger);
 end
 
 
@@ -382,14 +382,12 @@ end
 
 function textslide = ReadTextSlide(textLine,fid)
     textslide = [];
-    ii = 1;
     %right now can be no blank lines -- that is a problem!
     while (-1 ~= textLine)
         %fprintf('%s\n',textLine);
          C = textscan(textLine,'%q');
          if (length(C{1}) == 0)
              textslide = strcat(textslide,'\n');
-             ii = ii + 1;
              textLine = fgets(fid);
              continue
          end
@@ -403,7 +401,7 @@ function textslide = ReadTextSlide(textLine,fid)
              textslide = strcat(textslide,textLine,'\n');
          end
          textLine = fgets(fid);
-         ii = ii + 1;
+
     end
 end
         
