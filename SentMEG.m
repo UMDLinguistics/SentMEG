@@ -262,7 +262,7 @@ function expt = ReadExptFile(exptFileName,exptPath)
     
     %% For each slide or stimlist file, check that it exists, prompt for
     %% user entry if it does not, and then add on the contents to the expt
-    %% structure
+    %% structure by using ReadStimFile
     nFiles = length(exptFiles);
     for ii = 1:nFiles
         currFileNameAndPath = strcat(exptPath,exptFiles{ii})
@@ -274,13 +274,13 @@ function expt = ReadExptFile(exptFileName,exptPath)
             fid = fopen(currFileNameAndPath, 'r');
         end
         a = ii
-        expt = ReadExptSubFile(currFileNameAndPath,expt);
+        expt = ReadStimFile(currFileNameAndPath,expt);
         fclose(fid);
     end
 
 end
 
-function expt = ReadExptSubFile(exptFile,expt)
+function expt = ReadStimFile(exptFile,expt)
 fprintf('Reading file at:\n');
     fprintf('%s\n',exptFile);
     currblock = InitBlock;
@@ -289,7 +289,6 @@ fprintf('Reading file at:\n');
     textLine = fgets(fid);  %fgets reads a single line from a file, keeping new line characters.
     itemnum = 1;  %The number of the current stimulus item.
     while (-1 ~= textLine)
-        %fprintf('started a while loop\n');
         C = textscan(textLine, '%q %d'); %use textscan to separate it into 'text' 'number' pairs.
         numStim = length(C{1});
         
