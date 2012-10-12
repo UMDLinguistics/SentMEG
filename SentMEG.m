@@ -261,7 +261,8 @@ function expt = ReadExptFile(exptFileName,exptPath)
     fclose(fid);
     
     %% For each slide or stimlist file, check that it exists, prompt for
-    %% user entry if it does not, and then 
+    %% user entry if it does not, and then add on the contents to the expt
+    %% structure
     nFiles = length(exptFiles);
     for ii = 1:nFiles
         currFileNameAndPath = strcat(exptPath,exptFiles{ii})
