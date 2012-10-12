@@ -276,9 +276,11 @@ function expt = ReadExptFile(exptFileName,exptPath)
     fclose(fid);
     
     %% For each slide or stimlist filename listed, check that it exists, prompt for
-    %% user entry if it does not, and then add the contents of the file to the expt
-    %% structure by using ReadStimFile
+    %%user entry if it does not, and then add the contents of the file to the expt
+    %%structure by using ReadStimFile
+    
     nFiles = length(stimFiles);
+    
     for ii = 1:nFiles
         stimFileNameAndPath = strcat(exptPath,stimFiles{ii});
         fid = fopen(stimFileNameAndPath, 'r');
@@ -288,10 +290,9 @@ function expt = ReadExptFile(exptFileName,exptPath)
             stimFileNameAndPath = strcat(exptPath,stimFiles{ii});
             fid = fopen(stimFileNameAndPath, 'r');
         end
+        
         expt = ReadStimFile(stimFileNameAndPath,expt);
-        %ii
-        %size(expt)
-        %expt{size(expt)}
+        
         fclose(fid);
     end
 
@@ -434,10 +435,10 @@ function WriteLogFile(results,logFileName)
 		fid = fopen(logFileName,'a');
 	end
 	
-	fmt = '%.3f\t%s\t%s\n';
-	for (i = 1:length(results.times))
-	   currentTriggers = TriggerListToString(results.triggers{i});
-	   fprintf(fid,fmt,results.times{i},results.words{i},currentTriggers);
+	fmt = '%.3f\t%s\t%s\n';  %%controls formatting of output
+	for x = 1:length(results.times)
+	   currentTriggers = TriggerListToString(results.triggers{x});
+	   fprintf(fid,fmt,results.times{x},results.words{x},currentTriggers);
 	end
 	fclose(fid);
 
@@ -488,27 +489,7 @@ function str = ParToString(par)
 end
 
 
-%%%%%%%%%%%%Misc functions%%%%%%%%%%%%%%%%%%%%%%%%
-function triggerString = TriggerListToString(triggerList)
-    if(length(triggerList) < 1)
-        triggerString = 'no triggers sent';
-        return
-    end
-    triggerString = int2str(triggerList(1));
-    if (length(triggerList)>1)
-         for (i = 2:length(triggerList))
-                triggerString = strcat(triggerString,', ',int2str(triggerList(i)));
-         end
-    end
-end
-
-function list = AddEntry(list,entry)
-    if (length(list)<1)
-        list{1} = entry;
-    else
-        list{length(list)+1} = entry;
-    end
-end
+%%%%%%%%%%%%%Gathering responses%%%%%%%%%%%%%%%%
 
 function [reactionTime, button, buttonTrigger, par] = GetButtonPress(buttons,buttonTriggers,par,timed)
 %Waits for a button press by the user of the buttons whose numbers (found using KbName) are specified in the array
@@ -562,4 +543,28 @@ function ClearButtonPress()
         end
     end
 end
+
+
+%%%%%%%%%%%%Misc functions%%%%%%%%%%%%%%%%%%%%%%%%
+function triggerString = TriggerListToString(triggerList)
+    if(length(triggerList) < 1)
+        triggerString = 'no triggers sent';
+        return
+    end
+    triggerString = int2str(triggerList(1));
+    if (length(triggerList)>1)
+         for (i = 2:length(triggerList))
+                triggerString = strcat(triggerString,', ',int2str(triggerList(i)));
+         end
+    end
+end
+
+function list = AddEntry(list,entry)
+    if (length(list)<1)
+        list{1} = entry;
+    else
+        list{length(list)+1} = entry;
+    end
+end
+
 
