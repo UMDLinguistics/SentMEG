@@ -303,6 +303,7 @@ function expt = ReadStimFile(stimFile,expt)
     textLine = fgets(fid);  %fgets reads a single line from a file, keeping new line characters.
     
     %% For each line of the stim file, add content to expt structure
+
     itemnum = 1;  %The number of the current stimulus item.
     currblock = InitBlock;  %Information in the expt structure is organized by objects of class 'exptblock'
     currblock.name = stimFile;
@@ -318,12 +319,13 @@ function expt = ReadStimFile(stimFile,expt)
             continue
         end
         
-        %% If the first token in the current line is '<textslide>', 
-        %%add the current block of stimuli (if it is not empty) to expt,
-        %%reset the current block of stimuli, then read in a text slide until you hit '</textslide>'
-        %using ReadTextSlide, and add the textslide to the experiment.
+        %% Two cases, one for textslides, one for regular stim lists
 
         if strcmp(C{1}{1},'<textslide>')
+            %% If the first token in the current line is '<textslide>', 
+            %%add the current block of stimuli (if it is not empty) to expt,
+            %%reset the current block of stimuli, then read in a text slide until you hit '</textslide>'
+            %using ReadTextSlide, and add the textslide to the experiment.
             %fprintf('textslide identified\n');
             if (~BlockEmpty(currblock))
                 expt{1,length(expt)+1} = currblock;
@@ -336,64 +338,65 @@ function expt = ReadStimFile(stimFile,expt)
             %fprintf('textslide should be added\n');
             itemnum=1;
             textLine = fgets(fid);   
-            continue;           
-        end
-        
-        %% Otherwise, treat the current line as a stimulus item and add it to the current
-        %block of stimuli.
-        
-        %fprintf('not a text slide\n');
-         
-        blockregex = '\s*<\s*block\s*(name\s*=\s*"(\S*)"\s*)*>\s*';
-        %fprintf(textLine);
-        %fprintf('\n');
-        if(length(regexpi(textLine,blockregex))>0)
-            %fprintf('started a block\n');
-           if (~BlockEmpty(currblock))
-                    expt{1,length(expt)+1} = currblock;
-                    currblock = InitBlock;
-                    currblock.name = stimFile;
-           end
-           namechunk = regexprep(textLine,blockregex,'$1');
-           if (length(namechunk>0))
-               currblock.name = regexprep(namechunk,'.*"(\S*)".*','$1');
-           end
-           itemnum=1;
-           textLine = fgets(fid);  
-           continue;
-        end
-        
-        if (length(regexpi(textLine,'\s*<\s*/\s*block\s*>\s*'))>0)
-            %fprintf('ended a block\n');
-           if (~BlockEmpty(currblock))
-               expt{1,length(expt)+1} = currblock;
-               currblock = InitBlock;
-               currblock.name = stimFile;
-           end
-           itemnum=1;
-           textLine = fgets(fid);
-           continue;
-        end
-        
-        %fprintf('reading stimulus\n');
-          for jj = 1:numStimWords        
-              if strcmp(C{1}{jj},'?') 
-                     currblock.questionTriggers{itemnum} = C{2}(jj);
-                     currblock.questionList{itemnum} = C{1}{jj+1};
-                     if(jj==1) %%if no words prior to the question, create a blank item and trigger
-                         currblock.stimulusMatrix{itemnum}{jj} = [];
-                         currblock.triggerMatrix{itemnum}{jj} = [];
-                     end
-                     %fprintf('added a question and question trigger\n');
-                  break
-              else
-                  currblock.questionList{itemnum} = [];  %%if no question, create an empty cell as a place holder
-                  currblock.questionTriggers{itemnum} = []; %ditto for the question triggers
-              end
+
+       
+        else
+            %% Otherwise, treat like a structured list of text stimuli
             
-              currblock.stimulusMatrix{itemnum}{jj} = C{1}{jj};
-              currblock.triggerMatrix{itemnum}{jj} = C{2}(jj);
-              %fprintf('added a stimulus and trigger\n');
+            %fprintf('not a text slide\n');
+
+            blockregex = '\s*<\s*block\s*(name\s*=\s*"(\S*)"\s*)*>\s*';
+            %fprintf(textLine);
+            %fprintf('\n');
+            if(length(regexpi(textLine,blockregex))>0)
+                %fprintf('started a block\n');
+               if (~BlockEmpty(currblock))
+                        expt{1,length(expt)+1} = currblock;
+                        currblock = InitBlock;
+                        currblock.name = stimFile;
+               end
+               namechunk = regexprep(textLine,blockregex,'$1');
+               if (length(namechunk>0))
+                   currblock.name = regexprep(namechunk,'.*"(\S*)".*','$1');
+               end
+               itemnum=1;
+               textLine = fgets(fid);  
+               continue;
+            end
+
+            if (length(regexpi(textLine,'\s*<\s*/\s*block\s*>\s*'))>0)
+                %fprintf('ended a block\n');
+               if (~BlockEmpty(currblock))
+                   expt{1,length(expt)+1} = currblock;
+                   currblock = InitBlock;
+                   currblock.name = stimFile;
+               end
+               itemnum=1;
+               textLine = fgets(fid);
+               continue;
+            end
+
+            %fprintf('reading stimulus\n');
+              for jj = 1:numStimWords        
+                  if strcmp(C{1}{jj},'?') 
+                         currblock.questionTriggers{itemnum} = C{2}(jj);
+                         currblock.questionList{itemnum} = C{1}{jj+1};
+                         if(jj==1) %%if no words prior to the question, create a blank item and trigger
+                             currblock.stimulusMatrix{itemnum}{jj} = [];
+                             currblock.triggerMatrix{itemnum}{jj} = [];
+                         end
+                         %fprintf('added a question and question trigger\n');
+                      break
+                  else
+                      currblock.questionList{itemnum} = [];  %%if no question, create an empty cell as a place holder
+                      currblock.questionTriggers{itemnum} = []; %ditto for the question triggers
+                  end
+
+                  currblock.stimulusMatrix{itemnum}{jj} = C{1}{jj};
+                  currblock.triggerMatrix{itemnum}{jj} = C{2}(jj);
+                  %fprintf('added a stimulus and trigger\n');
+              end
+          
           end
           
           itemnum = itemnum + 1;
