@@ -4,6 +4,8 @@
 %%Modified by Ellen Lau & Allison Fogel, Fall 2012
 %%Partially based on code from Scott Burns, MGH
 
+%%Needs class definition file exptblock.m to exist in the same directory
+
 %%If you're trying to understand the script for the first time, try collapsing
 %%all of the functions so you can see the overarching structure
 
@@ -55,8 +57,8 @@ function expt = SentMEG()
     par = ReadParameterFile(paramFileNameAndPath,par);
     fprintf('Parameter file read');
 
-    %% ReadExptFile returns a struct, 'expt', which stores all the data necessary
-    %for running the experiment, besides the parameters.
+    %% ReadExptFile preloads stims, returning a struct, 'expt', 
+    %which stores all the data necessary for running the experiment, besides the parameters.
     exptFileNameAndPath = strcat(exptPath,exptFileName);
     expt = ReadExptFile(exptFileName,exptPath);
     fprintf('Expt file read');
@@ -295,18 +297,18 @@ end
 
 function expt = ReadStimFile(exptFile,expt)
 
-    %% Open the file containing the stimuli
+    %% Open a file containing stimuli
     fprintf('%s\n',exptFile);
     fid = fopen(exptFile, 'r');
     textLine = fgets(fid);  %fgets reads a single line from a file, keeping new line characters.
     
     %% For each line of the stim file, add content to expt structure
     itemnum = 1;  %The number of the current stimulus item.
-    currblock = InitBlock;
+    currblock = InitBlock;  %Information in the expt structure is organized by objects of class 'exptblock'
     currblock.name = exptFile;
 
     while (-1 ~= textLine)
-        C = textscan(textLine, '%q %d'); %use textscan to separate it into 'text' 'number' pairs.
+        C = textscan(textLine, '%q %d'); %use textscan to separate line into 'text' 'number' pairs.
         numStimWords = length(C{1});
         
         %If there is a blank line, skip it and get the next line.
@@ -316,10 +318,11 @@ function expt = ReadStimFile(exptFile,expt)
             continue
         end
         
-        %If the first token in the current line is '<textslide>', 
-        %add the current block of stimuli (if it is not empty) to expt,
-        %reset the current block of stimuli, then read in a text slide until you hit '</textslide>'
+        %% If the first token in the current line is '<textslide>', 
+        %%add the current block of stimuli (if it is not empty) to expt,
+        %%reset the current block of stimuli, then read in a text slide until you hit '</textslide>'
         %using ReadTextSlide, and add the textslide to the experiment.
+
         if strcmp(C{1}{1},'<textslide>')
             %fprintf('textslide identified\n');
             if (~BlockEmpty(currblock))
@@ -333,12 +336,13 @@ function expt = ReadStimFile(exptFile,expt)
             %fprintf('textslide should be added\n');
             itemnum=1;
             textLine = fgets(fid);   
-            continue;
-            
-        %Otherwise, treat the current line as a stimulus item and add it to the current
-        %block of stimuli.
+            continue;           
         end
-          %fprintf('not a text slide\n');
+        
+        %% Otherwise, treat the current line as a stimulus item and add it to the current
+        %block of stimuli.
+        
+        %fprintf('not a text slide\n');
          
         blockregex = '\s*<\s*block\s*(name\s*=\s*"(\S*)"\s*)*>\s*';
         %fprintf(textLine);
