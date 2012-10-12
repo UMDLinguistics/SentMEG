@@ -344,38 +344,6 @@ function expt = ReadStimFile(stimFile,expt)
             %% Otherwise, treat like a structured list of text stimuli
             
             %fprintf('not a text slide\n');
-
-            blockregex = '\s*<\s*block\s*(name\s*=\s*"(\S*)"\s*)*>\s*';
-            %fprintf(textLine);
-            %fprintf('\n');
-            if(length(regexpi(textLine,blockregex))>0)
-                %fprintf('started a block\n');
-               if (~BlockEmpty(currblock))
-                        expt{1,length(expt)+1} = currblock;
-                        currblock = InitBlock;
-                        currblock.name = stimFile;
-               end
-               namechunk = regexprep(textLine,blockregex,'$1');
-               if (length(namechunk>0))
-                   currblock.name = regexprep(namechunk,'.*"(\S*)".*','$1');
-               end
-               itemNum=1;
-               textLine = fgets(fid);  
-               continue;
-            end
-
-            if (length(regexpi(textLine,'\s*<\s*/\s*block\s*>\s*'))>0)
-                %fprintf('ended a block\n');
-               if (~BlockEmpty(currblock))
-                   expt{1,length(expt)+1} = currblock;
-                   currblock = InitBlock;
-                   currblock.name = stimFile;
-               end
-               itemNum=1;
-               textLine = fgets(fid);
-               continue;
-            end
-
             %fprintf('reading stimulus\n');
               for jj = 1:numStimWords        
                   if strcmp(C{1}{jj},'?') 
