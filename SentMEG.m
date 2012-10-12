@@ -3,6 +3,8 @@
 %%Modified by Cybelle Smith  Fall 2011 (10/10/11)
 %%Partially based on code from Scott Burns, MGH
 
+%%If you're trying to understand the script for the first time, try collapsing
+%%all of the functions so you can see the overarching structure
 
 %%%%%%%%%%%%Functions for running experiment%%%%%%%%%%%%%%%%
 function expt = SentMEG() 
