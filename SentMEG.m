@@ -4,6 +4,8 @@
 %%Modified by Ellen Lau & Allison Fogel, Fall 2012
 %%Partially based on code from Scott Burns, MGH
 
+%%Needs class definition file exptblock.m to exist in the same directory
+
 %%If you're trying to understand the script for the first time, try collapsing
 %%all of the functions so you can see the overarching structure
 
@@ -55,8 +57,8 @@ function expt = SentMEG()
     par = ReadParameterFile(paramFileNameAndPath,par);
     fprintf('Parameter file read');
 
-    %% ReadExptFile returns a struct, 'expt', which stores all the data necessary
-    %for running the experiment, besides the parameters.
+    %% ReadExptFile preloads stims, returning a struct, 'expt', 
+    %which stores all the data necessary for running the experiment, besides the parameters.
     exptFileNameAndPath = strcat(exptPath,exptFileName);
     expt = ReadExptFile(exptFileName,exptPath);
     fprintf('Expt file read');
@@ -111,20 +113,20 @@ function par = RunExperiment(expt,par)
 	sca;  %%%End of experiment!
 end
 
-function par = RunBlock(currblock,par)
+function par = RunBlock(stimBlock,par)
 
-	numItems = length(currblock.stimulusMatrix);
+	numItems = length(stimBlock.stimulusMatrix);
     
     %%%For each trial in the block:
     
 	for i = 1:numItems
         
         %%%Initialize results, currentItem, TriggerList
-		currentItem = currblock.stimulusMatrix{i};  %This is the current item (trial) being presented
-		currentItemTriggerList = currblock.triggerMatrix{i}; %This is the current list of triggers for that item
+		currentItem = stimBlock.stimulusMatrix{i};  %This is the current item (trial) being presented
+		currentItemTriggerList = stimBlock.triggerMatrix{i}; %This is the current list of triggers for that item
 		numWords = length(currentItem);
-        currentQuestion = currblock.questionList{i};
-        currQuestionTrigger = currblock.questionTriggers{i};
+        currentQuestion = stimBlock.questionList{i};
+        currQuestionTrigger = stimBlock.questionTriggers{i};
         results = InitResults;  
         
         %%%Present item
@@ -194,7 +196,7 @@ function results = RunItem(currentItem,currentItemTriggerList,numWords,results,p
 		end
 end
 
-function results = RunQuestion(currentQuestion, currQuestionTrigger, results, par);
+function results = RunQuestion(currentQuestion, currQuestionTrigger, results, par)
         %%%Present question
         WaitSecs(par.IQI);
         Screen('TextSize',par.wPtr,par.questionTextSize);%
@@ -214,7 +216,7 @@ function results = RunQuestion(currentQuestion, currQuestionTrigger, results, pa
            button = 'no_response';
         end
 
-        results = UpdateResults(results,reactionTime, button, [buttonTrigger]);
+        results = UpdateResults(results,reactionTime, button, buttonTrigger);
 end
 
 
@@ -256,7 +258,7 @@ end
 function expt = ReadExptFile(exptFileName,exptPath)
     exptFileNameAndPath = strcat(exptPath,exptFileName);
     expt = {};
-    exptFiles = {};
+    stimFiles = {};
     fid = fopen(exptFileNameAndPath, 'r');
     if fid == -1
         error('Cannot open experiment file.')
@@ -267,46 +269,50 @@ function expt = ReadExptFile(exptFileName,exptPath)
     ii = 1;
     while (-1 ~= textLine)
         C = textscan(textLine, '%q %d'); %use textscan to separate it
-        exptFiles{ii} = strcat(textLine);
+        stimFiles{ii} = strcat(textLine);
         ii = ii + 1;
         textLine = fgetl(fid);      
     end 
     fclose(fid);
     
     %% For each slide or stimlist filename listed, check that it exists, prompt for
-    %% user entry if it does not, and then add the contents of the file to the expt
-    %% structure by using ReadStimFile
-    nFiles = length(exptFiles);
+    %%user entry if it does not, and then add the contents of the file to the expt
+    %%structure by using ReadStimFile
+    
+    nFiles = length(stimFiles);
+    
     for ii = 1:nFiles
-        currFileNameAndPath = strcat(exptPath,exptFiles{ii})
-        fid = fopen(currFileNameAndPath, 'r');
+        stimFileNameAndPath = strcat(exptPath,stimFiles{ii});
+        fid = fopen(stimFileNameAndPath, 'r');
         while fid == -1
-            prompt = horzcat('Set filename for ',exptFiles{ii},': ');
-            exptFiles{ii} = input(prompt, 's');
-            currFileNameAndPath = strcat(exptPath,exptFiles{ii});
-            fid = fopen(currFileNameAndPath, 'r');
+            prompt = horzcat('Set filename for ',stimFiles{ii},': ');
+            stimFiles{ii} = input(prompt, 's');
+            stimFileNameAndPath = strcat(exptPath,stimFiles{ii});
+            fid = fopen(stimFileNameAndPath, 'r');
         end
-        a = ii
-        expt = ReadStimFile(currFileNameAndPath,expt);
+        
+        expt = ReadStimFile(stimFileNameAndPath,expt);
+        
         fclose(fid);
     end
 
 end
 
-function expt = ReadStimFile(exptFile,expt)
+function expt = ReadStimFile(stimFile,expt)
 
-    %% Open the file containing the stimuli
-    fprintf('%s\n',exptFile);
-    fid = fopen(exptFile, 'r');
+    %% Open a file containing stimuli
+    fprintf('%s\n',stimFile);
+    fid = fopen(stimFile, 'r');
     textLine = fgets(fid);  %fgets reads a single line from a file, keeping new line characters.
     
     %% For each line of the stim file, add content to expt structure
-    itemnum = 1;  %The number of the current stimulus item.
-    currblock = InitBlock;
-    currblock.name = exptFile;
+
+    itemNum = 1;  %The number of the current stimulus item.
+    stimBlock = InitBlock;  %Information in the expt structure is organized by objects of class 'exptblock'
+    stimBlock.name = stimFile;
 
     while (-1 ~= textLine)
-        C = textscan(textLine, '%q %d'); %use textscan to separate it into 'text' 'number' pairs.
+        C = textscan(textLine, '%q %d'); %use textscan to separate line into 'text' 'number' pairs.
         numStimWords = length(C{1});
         
         %If there is a blank line, skip it and get the next line.
@@ -316,92 +322,58 @@ function expt = ReadStimFile(exptFile,expt)
             continue
         end
         
-        %If the first token in the current line is '<textslide>', 
-        %add the current block of stimuli (if it is not empty) to expt,
-        %reset the current block of stimuli, then read in a text slide until you hit '</textslide>'
-        %using ReadTextSlide, and add the textslide to the experiment.
+        %% Two cases, one for files containing textslides, one for regular stim lists
+        %Both of these need to be able to loop, because you can have more than one text
+        %slide in a file (e.g. an intro.txt file with several slides)
+
         if strcmp(C{1}{1},'<textslide>')
+            %% If the first token in the current line is '<textslide>', add the current block of stimuli (if it is not empty) to expt,
+            %%reset the current block of stimuli, then read from the file using ReadTextSlide until you hit '</textslide>'
+            %%and add the textslide to the experiment.
+            
             %fprintf('textslide identified\n');
-            if (~BlockEmpty(currblock))
-                expt{1,length(expt)+1} = currblock;
-                currblock = InitBlock;
-                currblock.name = exptFile;
-                itemnum = 1;
-                %fprintf('block added\n');
-            end
             expt{1,length(expt)+1} = ReadTextSlide(textLine,fid);
-            %fprintf('textslide should be added\n');
-            itemnum=1;
+            itemNum=1;
             textLine = fgets(fid);   
-            continue;
+       
+        else
+            %% Otherwise, treat like a structured list of text stimuli
             
-        %Otherwise, treat the current line as a stimulus item and add it to the current
-        %block of stimuli.
-        end
-          %fprintf('not a text slide\n');
-         
-        blockregex = '\s*<\s*block\s*(name\s*=\s*"(\S*)"\s*)*>\s*';
-        %fprintf(textLine);
-        %fprintf('\n');
-        if(length(regexpi(textLine,blockregex))>0)
-            %fprintf('started a block\n');
-           if (~BlockEmpty(currblock))
-                    expt{1,length(expt)+1} = currblock;
-                    currblock = InitBlock;
-                    currblock.name = exptFile;
-           end
-           namechunk = regexprep(textLine,blockregex,'$1');
-           if (length(namechunk>0))
-               currblock.name = regexprep(namechunk,'.*"(\S*)".*','$1');
-           end
-           itemnum=1;
-           textLine = fgets(fid);  
-           continue;
-        end
-        if (length(regexpi(textLine,'\s*<\s*/\s*block\s*>\s*'))>0)
-            %fprintf('ended a block\n');
-           if (~BlockEmpty(currblock))
-               expt{1,length(expt)+1} = currblock;
-               currblock = InitBlock;
-               currblock.name = exptFile;
-           end
-           itemnum=1;
-           textLine = fgets(fid);
-           continue;
-        end
-        %fprintf('reading stimulus\n');
-          for jj = 1:numStimWords        
-              if strcmp(C{1}{jj},'?') 
-                     currblock.questionTriggers{itemnum} = C{2}(jj);
-                     currblock.questionList{itemnum} = C{1}{jj+1};
-                     if(jj==1) %%if no words prior to the question, create a blank item and trigger
-                         currblock.stimulusMatrix{itemnum}{jj} = [];
-                         currblock.triggerMatrix{itemnum}{jj} = [];
-                     end
-                     %fprintf('added a question and question trigger\n');
-                  break
-              else
-                  currblock.questionList{itemnum} = [];  %%if no question, create an empty cell as a place holder
-                  currblock.questionTriggers{itemnum} = []; %ditto for the question triggers
+              for jj = 1:numStimWords        
+                  if strcmp(C{1}{jj},'?') 
+                         stimBlock.questionTriggers{itemNum} = C{2}(jj);
+                         stimBlock.questionList{itemNum} = C{1}{jj+1};
+                         if(jj==1) %%if no words prior to the question, create a blank item and trigger
+                             stimBlock.stimulusMatrix{itemNum}{jj} = [];
+                             stimBlock.triggerMatrix{itemNum}{jj} = [];
+                         end
+                         %fprintf('added a question and question trigger\n');
+                      break
+                  else
+                      stimBlock.questionList{itemNum} = [];  %%if no question, create an empty cell as a place holder
+                      stimBlock.questionTriggers{itemNum} = []; %ditto for the question triggers
+                  end
+
+                  stimBlock.stimulusMatrix{itemNum}{jj} = C{1}{jj};
+                  stimBlock.triggerMatrix{itemNum}{jj} = C{2}(jj);
+                  %fprintf('added a stimulus and trigger\n');
               end
-            
-              currblock.stimulusMatrix{itemnum}{jj} = C{1}{jj};
-              currblock.triggerMatrix{itemnum}{jj} = C{2}(jj);
-              %fprintf('added a stimulus and trigger\n');
+              
           end
           
-          itemnum = itemnum + 1;
-          %fprintf('item number increased by one\n');
+          itemNum = itemNum + 1;
           textLine = fgets(fid); 
+          
     end
     
-    %Add the current block of stimuli to the experiment, if it is not
-    %empty.
-    if (~BlockEmpty(currblock))
-        expt{1,length(expt)+1} = currblock;
+    %% Now the loop is finished, so add this block of stimuli to the experiment, if it is not empty.
+    if (~BlockEmpty(stimBlock))
+        expt{1,length(expt)+1} = stimBlock;
         %fprintf('block added\n');
     end
+    
     fclose(fid);
+    
 end
 
 function blockempty = BlockEmpty(block)
@@ -410,15 +382,12 @@ function blockempty = BlockEmpty(block)
 end
 
 function textslide = ReadTextSlide(textLine,fid)
+%% Fills up textslide variable with text to be presented on single screen
     textslide = [];
-    ii = 1;
-    %right now can be no blank lines -- that is a problem!
     while (-1 ~= textLine)
-        %fprintf('%s\n',textLine);
          C = textscan(textLine,'%q');
          if (length(C{1}) == 0)
              textslide = strcat(textslide,'\n');
-             ii = ii + 1;
              textLine = fgets(fid);
              continue
          end
@@ -432,16 +401,16 @@ function textslide = ReadTextSlide(textLine,fid)
              textslide = strcat(textslide,textLine,'\n');
          end
          textLine = fgets(fid);
-         ii = ii + 1;
+
     end
 end
         
-function currblock = InitBlock
-    currblock = expblock;  %%%Define currblock as a member of the class expblock, defined in expblock.m
-    currblock.stimulusMatrix = [];
-    currblock.triggerMatrix = [];
-    currblock.questionList = {};
-    currblock.questionTriggers = {};
+function stimBlock = InitBlock
+    stimBlock = expblock;  %%%Define stimBlock as a member of the class expblock, defined in expblock.m
+    stimBlock.stimulusMatrix = [];
+    stimBlock.triggerMatrix = [];
+    stimBlock.questionList = {};
+    stimBlock.questionTriggers = {};
 end
 
  
@@ -466,10 +435,10 @@ function WriteLogFile(results,logFileName)
 		fid = fopen(logFileName,'a');
 	end
 	
-	fmt = '%.3f\t%s\t%s\n';
-	for (i = 1:length(results.times))
-	   currentTriggers = TriggerListToString(results.triggers{i});
-	   fprintf(fid,fmt,results.times{i},results.words{i},currentTriggers);
+	fmt = '%.3f\t%s\t%s\n';  %%controls formatting of output
+	for x = 1:length(results.times)
+	   currentTriggers = TriggerListToString(results.triggers{x});
+	   fprintf(fid,fmt,results.times{x},results.words{x},currentTriggers);
 	end
 	fclose(fid);
 
@@ -520,6 +489,61 @@ function str = ParToString(par)
 end
 
 
+%%%%%%%%%%%%%Gathering responses%%%%%%%%%%%%%%%%
+
+function [reactionTime, button, buttonTrigger, par] = GetButtonPress(buttons,buttonTriggers,par,timed)
+%% Waits for a button press by the user of the buttons whose numbers (found using KbName) 
+%are specified in the arry of buttons. Send the corresponding trigger for that button, as specified in
+%the array buttonTriggers. If the boolean value timed == 1, after par.qDuration seconds the function ends.  
+%If timed == 0, waits forever until the user types one of the specified buttons.
+
+    begWaitTime = GetSecs();
+    timeCutoff = begWaitTime + par.qDuration;                    
+    flag = 0;
+    button = -1;
+    buttonTrigger = -1;
+    
+    %% Loop that waits for a response or breaks if timeCutoff is exceeded
+    while (true);
+        [keyDetect,reactionTime,keyCode] = KbCheck(-1);
+        %is there a faster way to compare each button??  Can we do this simultaneously for all buttons??
+        for (i = 1:length(buttons));
+            if (keyCode(buttons(i)));
+                %DaqDOut(par.di,1,buttonTriggers(i));
+                %DaqDOut(par.di,1,0);
+                button = buttons(i);
+                buttonTrigger = buttonTriggers(i);
+                flag = 1;
+                break;
+            end
+        end
+        
+        %%This part just allows you to break if a button was pressed
+        if (flag == 1);
+            break;
+        end
+
+        if (timed && GetSecs() > absTime);
+            break;
+        end
+    end
+end
+
+function ClearButtonPress()
+%% Makes sure no buttons are being pressed/held down before get the new button press.
+%This is important for when, for example, two textslides are one after the
+%other, or for any case when one button press triggers another stage of the
+%experiment that can be moved on from by pressing the same button that ended the last
+%stage.
+    while(true)
+        [keyDetect,reactionTime,keyCode] = KbCheck(-1);
+        if(~keyDetect)
+            break;
+        end
+    end
+end
+
+
 %%%%%%%%%%%%Misc functions%%%%%%%%%%%%%%%%%%%%%%%%
 function triggerString = TriggerListToString(triggerList)
     if(length(triggerList) < 1)
@@ -542,56 +566,4 @@ function list = AddEntry(list,entry)
     end
 end
 
-function [reactionTime, button, buttonTrigger, par] = GetButtonPress(buttons,buttonTriggers,par,timed)
-%Waits for a button press by the user of the buttons whose numbers (found using KbName) are specified in the array
-%buttons. send the corresponding trigger for that button, as specified in
-%the array buttonTriggers. If the boolean value timed == 1, after
-%par.qDuration seconds the function ends.  If timed == 0, waits forever
-%until the user types one of the specified buttons.
-        beg = GetSecs();
-        %Is this right???
-        absTime = beg + par.qDuration;                    
-        flag = 0;
-        button = -1;
-        buttonTrigger = -1;
-        while (true);
-            [keyDetect,reactionTime,keyCode] = KbCheck(-1);
-            %is there a faster way to compare each button??  Can we do this
-            %simultaneously for all buttons??
-            for (i = 1:length(buttons));
-                if (keyCode(buttons(i)));
-                    tic;
-%                     %DaqDOut(par.di,1,buttonTriggers(i));
-%                     par.timing.responseTriggers(par.timing.responseIndex) = toc;
-%                     par.timing.responseIndex = par.timing.responseIndex + 1;
-                    %DaqDOut(par.di,1,0);
-                    button = buttons(i);
-                    buttonTrigger = buttonTriggers(i);
-                    flag = 1;
-                    break;
-                end
-            end
-            if (flag == 1);
-                break;
-            end
-            
-            if (timed && GetSecs() > absTime);
-                break;
-            end
-        end
-end
-
-function ClearButtonPress()
-%Makes sure no buttons are being pressed/held down before get the new button press.
-%This is important for when, for example, two textslides are one after the
-%other, or for any case when one button press triggers another stage of the
-%experiment that can be moved on from by pressing the same button that ended the last
-%stage.
-    while(true)
-        [keyDetect,reactionTime,keyCode] = KbCheck(-1);
-        if(~keyDetect)
-            break;
-        end
-    end
-end
 
