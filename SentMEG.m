@@ -6,6 +6,10 @@
 
 %%Needs class definition file exptblock.m to exist in the same directory
 
+%%Useful fact: if the program freezes while the screen is black you can
+%%escape by typing ctrl-c and hitting return, then "sca" and hitting return 
+%%(you may need to do it more than once 
+
 %%If you're trying to understand the script for the first time, try collapsing
 %%all of the functions so you can see the overarching structure
 
