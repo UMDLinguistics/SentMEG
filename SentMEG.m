@@ -548,7 +548,7 @@ function [reactionTime, button, buttonTrigger, par] = GetButtonPress(buttons,but
             break;
         end
 
-        if (timed && GetSecs() > absTime);
+        if (timed && GetSecs() > timeCutoff);
             break;
         end
     end
