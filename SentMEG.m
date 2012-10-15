@@ -178,7 +178,7 @@ function results = RunItem(currentItem,currentItemTriggerList,numWords,results,p
         
         %% Present the item itself, word by word
         %%%This loop should have as little as possible inside it to speed timing performance
-		for w = 1: numWords 
+		for w = 1: (numWords - 1)
 			currentWord = currentItem{w};
 			currentTrigger = currentItemTriggerList{w};
 
@@ -197,7 +197,28 @@ function results = RunItem(currentItem,currentItemTriggerList,numWords,results,p
             % containing results to log (but don't yet log it)
 			results = UpdateResults(results,timeToLog, currentWord, currentTrigger);
 			
-		end
+        end
+        
+        %%Present final word of trial , possibly for a different duration
+        
+        currentWord = currentItem{numWords};
+        currentTrigger = currentItemTriggerList{numWords};
+
+        %%Present word, send trigger, show subsequent blank screen
+        DrawFormattedText(par.wPtr,currentWord,'center','center',WhiteIndex(par.wPtr));
+        Screen('DrawingFinished',par.wPtr);
+        timeToLog = Screen('Flip',par.wPtr);      
+        %DaqDOut(par.di,1,currentTrigger); %Turn trigger on
+        %DaqDOut(par.di,1,0); %Turn trigger off 
+        WaitSecs(par.finalWordDuration);
+        Screen('FillRect',par.wPtr,par.black);
+        Screen('Flip',par.wPtr);
+
+        % Add data about current word presentation to data structure
+        % containing results to log (but don't yet log it)
+        results = UpdateResults(results,timeToLog, currentWord, currentTrigger);
+        
+        
 end
 
 function results = RunQuestion(currentQuestion, currQuestionTrigger, results, par)
