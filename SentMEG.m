@@ -143,13 +143,19 @@ function par = RunBlock(stimBlock,par)
 		
         %%%Log all results after trial is complete
 		WriteLogFile(results,par.logFileName);
-
-        %%%Wait for button press to continue to next trial
-		Screen('TextSize',par.wPtr,par.slideTextSize);
-		DrawFormattedText(par.wPtr,'Press space bar to continue.','center','center',WhiteIndex(par.wPtr));
-		Screen(par.wPtr,'Flip');
-		GetButtonPress([par.moveOnButton],[par.moveOnTrigger],par,0);
-	
+        
+        %%%If not self-paced, wait ITI before continuing
+        if par.selfPaced == 0
+            Screen('FillRect',par.wPtr,par.black);
+			Screen('Flip',par.wPtr);
+			WaitSecs(par.ITI);
+        elseif par.selfPaced == 1
+            %%%Wait for button press to continue to next trial
+            Screen('TextSize',par.wPtr,par.slideTextSize);
+            DrawFormattedText(par.wPtr,'Press space bar to continue.','center','center',WhiteIndex(par.wPtr));
+            Screen(par.wPtr,'Flip');
+            GetButtonPress([par.moveOnButton],[par.moveOnTrigger],par,0);
+        end
 	end
 
 end
