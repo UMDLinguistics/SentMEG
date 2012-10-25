@@ -28,8 +28,8 @@ function expt = SentMEG()
 
     %% Initialize file names
     exptFilePrefix = strrep(exptFileName,'.expt','');
-    par.logFileName = strcat(exptPath,subjID,'_',exptFilePrefix,'.log'); %%logs events in same directory as experiment file
-    recFileName = strcat(exptPath,subjID,'_',exptFilePrefix,'.rec'); %%logs parameters in same directory as experiment file
+    par.logFileName = strcat(exptPath,'logs/',subjID,'_',exptFilePrefix,'.log'); %%logs events in same directory as experiment file
+    recFileName = strcat(exptPath,'logs/',subjID,'_',exptFilePrefix,'.rec'); %%logs parameters in same directory as experiment file
 
     %% Create log and rec files, first test that they don't already exist
     fExist = fopen(par.logFileName, 'r');
@@ -76,8 +76,17 @@ function expt = SentMEG()
     %par.di = DaqDeviceIndex; % the DaqDeviceIndex function returns the index of the port assigned to the daq device so you can refer to it in the rest of your script
     %DaqDConfigPort(par.di,1,0); % this configures the daq port to either send output or receive input. the first number refers to which port of the daq device, A (0) or B (1). The second number refers to output (0) or input (1)
     %DaqDOut(par.di,1,0); % this zeros out the trigger line to get started
+    par.pulsewidth = .005;
+    open = daqhwinfo('parallel')
+    par.DIO1 = digitalio('parallel','LPT1')
+    par.DIO2 = digitalio('parallel','LPT1')
+    outreg = addline(par.DIO1, 0:7, 0, 'out')
+    inreg = addline(par.DIO2, 0:4, 1, 'in')
 
-
+    active_triggers = [130:143 146:156];
+    ExptTriggers = active_triggers(1:par.nTriggers)
+    par.triggerStruct = SetUpTriggerLines(ExptTriggers)
+    
     %%% RunExperiment is the function that controls presentation of
     %%% slides and stimuli
     par = RunExperiment(expt,par);
@@ -150,9 +159,10 @@ function par = RunBlock(stimBlock,par)
 			Screen('Flip',par.wPtr);
 			WaitSecs(par.ITI);
         elseif par.selfPaced == 1
+            ClearButtonPress;
             %%%Wait for button press to continue to next trial
             Screen('TextSize',par.wPtr,par.slideTextSize);
-            DrawFormattedText(par.wPtr,'Press space bar to continue.','center','center',WhiteIndex(par.wPtr));
+            DrawFormattedText(par.wPtr,'Press any button to continue.','center','center',WhiteIndex(par.wPtr));
             Screen(par.wPtr,'Flip');
             GetButtonPress([par.moveOnButton],[par.moveOnTrigger],par,0);
         end
@@ -182,6 +192,7 @@ function results = RunItem(currentItem,currentItemTriggerList,numWords,results,p
 		Screen('Flip',par.wPtr);
 		WaitSecs(par.IFI);
         
+      
         %% Present the item itself, word by word
         %%%This loop should have as little as possible inside it to speed timing performance
 		for w = 1: (numWords - 1)
@@ -194,6 +205,10 @@ function results = RunItem(currentItem,currentItemTriggerList,numWords,results,p
 			timeToLog = Screen('Flip',par.wPtr);      
 			%DaqDOut(par.di,1,currentTrigger); %Turn trigger on
 			%DaqDOut(par.di,1,0); %Turn trigger off 
+            par.triggerStruct.WhichTrigger(currentTrigger).outval
+            putvalue(par.DIO1.Line(1:8),par.triggerStruct.WhichTrigger(currentTrigger).outval)
+            waitsecs(par.pulsewidth);
+            putvalue(par.DIO1.Line(1:8),0);
             WaitSecs(par.wordDuration);
 			Screen('FillRect',par.wPtr,par.black);
 			Screen('Flip',par.wPtr);
@@ -208,14 +223,17 @@ function results = RunItem(currentItem,currentItemTriggerList,numWords,results,p
         %%Present final word of trial , possibly for a different duration
         
         currentWord = currentItem{numWords};
-        currentTrigger = currentItemTriggerList{numWords};
+        currentTrigger = currentItemTriggerList{numWords}
 
         %%Present word, send trigger, show subsequent blank screen
         DrawFormattedText(par.wPtr,currentWord,'center','center',WhiteIndex(par.wPtr));
         Screen('DrawingFinished',par.wPtr);
-        timeToLog = Screen('Flip',par.wPtr);      
+        timeToLog = Screen('Flip',par.wPtr); 
         %DaqDOut(par.di,1,currentTrigger); %Turn trigger on
         %DaqDOut(par.di,1,0); %Turn trigger off 
+        putvalue(par.DIO1.Line(1:8),par.triggerStruct.WhichTrigger(currentTrigger).outval)
+        waitsecs(par.pulsewidth);
+        putvalue(par.DIO1.Line(1:8),0);
         WaitSecs(par.finalWordDuration);
         Screen('FillRect',par.wPtr,par.black);
         Screen('Flip',par.wPtr);
@@ -230,12 +248,17 @@ end
 function results = RunQuestion(currentQuestion, currQuestionTrigger, results, par)
         %%%Present question
         WaitSecs(par.IQI);
+        ClearButtonPress;
         Screen('TextSize',par.wPtr,par.questionTextSize);%
         DrawFormattedText(par.wPtr,currentQuestion,'center','center',WhiteIndex(par.wPtr));
         Screen('DrawingFinished',par.wPtr);
         timeToLog= Screen('Flip',par.wPtr);
         %DaqDOut(par.di,1,par.questionTrigger);
         %DaqDOut(par.di,1,0);
+        putvalue(par.DIO1.Line(1:8),par.triggerStruct.WhichTrigger(currQuestionTrigger).outval)
+        waitsecs(par.pulsewidth);
+        putvalue(par.DIO1.Line(1:8),0);
+
         results = UpdateResults(results,timeToLog, currentQuestion, currQuestionTrigger);
 
         %%%Capture button press
@@ -526,8 +549,8 @@ function [reactionTime, button, buttonTrigger, par] = GetButtonPress(buttons,but
 %% Waits for a button press by the user of the buttons whose numbers (found using KbName) 
 %are specified in the arry of buttons. Send the corresponding trigger for that button, as specified in
 %the array buttonTriggers. If the boolean value timed == 1, after par.qDuration seconds the function ends.  
-%If timed == 0, waits forever until the user types one of the specified buttons.
-
+%If timed == 0, waits forever until the user types one of the specified
+%buttons.
     begWaitTime = GetSecs();
     timeCutoff = begWaitTime + par.qDuration;                    
     flag = 0;
@@ -542,6 +565,15 @@ function [reactionTime, button, buttonTrigger, par] = GetButtonPress(buttons,but
             if (keyCode(buttons(i)));
                 %DaqDOut(par.di,1,buttonTriggers(i));
                 %DaqDOut(par.di,1,0);
+                length(buttons)
+                buttons
+                buttonTriggers
+                buttons(i)
+                buttonTriggers(i)
+                par.triggerStruct.WhichTrigger(buttonTriggers(i)).outval
+                putvalue(par.DIO1.Line(1:8),par.triggerStruct.WhichTrigger(buttonTriggers(i)).outval)
+                waitsecs(par.pulsewidth);
+                putvalue(par.DIO1.Line(1:8),0);
                 button = buttons(i);
                 buttonTrigger = buttonTriggers(i);
                 flag = 1;
